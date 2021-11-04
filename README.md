@@ -1,2 +1,2 @@
 # Birdsong-Detector
-Repository for Applied Deep Learing tutorial 
+Repository for Applied Deep Learning tutorial 
