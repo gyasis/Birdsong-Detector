@@ -338,38 +338,50 @@ mel_spectrogram = T.MelSpectrogram(
 
 # %%
 #Log audio files to Comet for debugging
+
+#get random sample of pandas dataframe
+
+def get_random_sample(df, n=1):
+    return df.sample(n=n)
+
+df2 = get_random_sample(df, n=50)
+df2.head()
+df2.reset_index(drop=True, inplace=True)
+
+# %%
 import random
 
-for i, file in enumerate(df.Wav):
-    single_file = aud_open(df.Wav[i],df.Offset[i], df.Duration[i], show_stats=False)
+for i, file in enumerate(df2.Wav):
+    print(i)
+    single_file = aud_open(df2.Wav[i],df2.Offset[i], df2.Duration[i], show_stats=False)
     temp,_ = single_file
     temp1 = temp.numpy()
     randomnumber = random.randint(1,99999999)
-    experiment.log_audio(temp.T, 
-                         sample_rate=22050, 
-                         copy_to_tmp=False,
-                         file_name = str(randomnumber)+"Original"+"_"+ df.Species[i]+"_"
-                        )
+    # experiment.log_audio(temp.T, 
+    #                      sample_rate=22050, 
+    #                      copy_to_tmp=False,
+    #                      file_name = str(randomnumber)+"Original"+"_"+ df.Species[i]+"_"
+    #                     )
     
     temp = rechannel(temp, 1)
     experiment.log_audio(temp.T, 
                          sample_rate=22050, 
                          copy_to_tmp=False,
-                         file_name = str(randomnumber)+
-                            "Rechannel"+ df.Species[i])
+                         file_name = df2.Species[i])
+    print("Logging ",df2.Species[i])
     
-    temp = pad_trunc(temp, 7000)
-    experiment.log_audio(temp.numpy().T, 
-                         sample_rate=22050,
-                         copy_to_tmp=False,
-                         file_name = str(randomnumber)+"Pad"+ df.Species[i] +"_")        
+    # temp = pad_trunc(temp, 7000)
+    # experiment.log_audio(temp.numpy().T, 
+    #                      sample_rate=22050,
+    #                      copy_to_tmp=False,
+    #                      file_name = str(randomnumber)+"Pad"+ df.Species[i] +"_")        
             
-    temp = time_shift(temp, 0.4)
-    experiment.log_audio(temp.numpy().T, 
-                         sample_rate=22050,
-                         copy_to_tmp=False,
-                         file_name = str(randomnumber)+"TimeShift"+ df.Species[i] +"_"+str(randomnumber)
-                        )
+    # temp = time_shift(temp, 0.4)
+    # experiment.log_audio(temp.numpy().T, 
+    #                      sample_rate=22050,
+    #                      copy_to_tmp=False,
+    #                      file_name = str(randomnumber)+"TimeShift"+ df.Species[i] +"_"+str(randomnumber)
+    #                     )
     
     # plot_x  = temp.squeeze()
     # x_= plt.imshow(plot_x,aspect='auto', 
@@ -378,8 +390,7 @@ for i, file in enumerate(df.Wav):
     # experiment.log_figure(x_, figure_name=randomnumber+df.Species[i], figure=None, overwrite=False, step=None)
     
     
-    if i < 7:
-      break
+    
     
     
 #     import IPython.display
@@ -436,6 +447,8 @@ class MyDataset(Dataset):
 
 # %%
 datasetter = MyDataset(df)
+sampleset = MyDataset(df2)
+
 # %%
 set_batchsize = 512
 
@@ -535,10 +548,10 @@ writer = SummaryWriter()
 # ----------------------------
 def training(model, train_dl, num_epochs):
   # Loss Function, Optimizer and Scheduler
-  optimizer_name = torch.optim.Adam(model.parameters(),lr=0.001,weight_decay=0.0001)
+  optimizer_name = torch.optim.Adam(model.parameters(),lr=0.005279173305530663,weight_decay=0.0001)
   criterion = nn.CrossEntropyLoss()
   optimizer = optimizer_name
-  scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.001,
+  scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.006,
                                                 steps_per_epoch=int(len(train_dl)),
                                                 epochs=num_epochs,
                                                 anneal_strategy='linear')
@@ -586,11 +599,11 @@ def training(model, train_dl, num_epochs):
         experiment.log_metric("Loss/train",loss, epoch)
         writer.flush()
         
-        if i % 5 == 0:    # print every 10 mini-batches
-          try:
-            print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / i))
-          except ZeroDivisionError:
-            print('division by zero')
+        # if i % 5 == 0:    # print every 10 mini-batches
+        #   try:
+        #     print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / i))
+        #   except ZeroDivisionError:
+        #     print('division by zero')
             
     # Print stats at the end of the epoch
     num_batches = len(train_dl)
@@ -604,7 +617,7 @@ def training(model, train_dl, num_epochs):
     writer.flush()
   print('Finished Training')
   
-num_epochs = 5 # Just for demo, adjust this higher.
+num_epochs = 18 # Just for demo, adjust this higher.
 training(myModel, train_dl, num_epochs)
 experiment.end()
 
@@ -645,7 +658,7 @@ inference(myModel, val_dl)
  
 # %%
 end_ = 10
-for i,data in enumerate(datasetter):
+for i,data in enumerate(sampleset):
   
      if i < end_: 
        if i > 3:
@@ -656,12 +669,12 @@ for i,data in enumerate(datasetter):
        
          print(data[0].shape)
          x = data[0].squeeze()
-         ic.ic(x.shape)
-         plt.imshow(x,aspect='auto', 
-                    cmap='hot'
-                    )
+        #  ic.ic(x.shape)
+        #  plt.imshow(x,aspect='auto', 
+        #             cmap='hot'
+        #             )
          plot_spectrogram(x)
-         plot_waveform(x,22050)
+        #  plot_waveform(x,22050)
         #  plot_kaldi_pitch(x)
 
          
@@ -670,17 +683,13 @@ for i,data in enumerate(datasetter):
      
 
 
-
+# %%
+torch.save(myModel.state_dict(), 'model.pt')
 
 
 
 # %%
 import optuna
-
-
-
-#Trial 0 finished with value: 0.9308248370382751 and parameters: {'lr': 0.0002377344895974743, 'optimizer': 'RMSprop', 'num_epochs': 14}. Best is trial 0 with value: 0.9308248370382751.
-#Epoch: 13, Loss: 0.24, Accuracy: 0.93
 
 
 def objective(trial):
@@ -693,7 +702,7 @@ def objective(trial):
   criterion = nn.CrossEntropyLoss()
   lr = trial.suggest_loguniform('lr', 1e-5, 1e-1)
   optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'AdamW','RMSprop', 'Adagrad'])
-  num_epochs = trial.suggest_int('num_epochs', 2, 7)
+  num_epochs = trial.suggest_int('num_epochs', 5, 15)
   optimizer = getattr(torch.optim, optimizer_name)(model.parameters(),lr=lr)
   
   scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.001, cycle_momentum=False,
@@ -711,7 +720,7 @@ def objective(trial):
     total_prediction = 0
 
     # Repeat for each batch in the training set
-    for i, data in enumerate(train_dl):
+    for i, data in enumerate(tqdm(train_dl)):
         # Get the input features and target labels, and put them on the GPU
         inputs, labels = data[0].to(device), data[1].to(device)
         
@@ -771,7 +780,7 @@ def objective(trial):
 
 sampler = optuna.samplers.TPESampler()
 study = optuna.create_study(sampler=optuna.samplers.TPESampler(), direction='maximize', pruner=optuna.pruners.MedianPruner())
-study.optimize(objective, n_trials=10)
+study.optimize(objective, n_trials=15)
 
 print("\n++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
 print("Study statistics: ")
@@ -1136,11 +1145,6 @@ ic.ic(spec.shape)
 
 spec = spectro_augment_(spec, n_freq_masks=2, n_time_masks=2)
 
-           
-      
-
-
-
 print(mfcc.shape)
 # print(mfcc)
 # print(spec.shape)
@@ -1152,3 +1156,26 @@ sample = pad_trunc(sample, df.Duration[i])
             
 sample = time_shift(sample, 0.2)
             
+
+
+
+
+
+#save trained model with hyperparameters
+def save_model(model, optimizer, scheduler, model_name, epochs, loss, best_loss,
+               save_dir='./models/'):
+  model_dir = os.path.join(save_dir, model_name)
+  if not os.path.exists(model_dir):
+    os.makedirs(model_dir)
+  model_path = os.path.join(model_dir, 'model.pt')
+  optimizer_path = os.path.join(model_dir, 'optimizer.pt')
+  scheduler_path = os.path.join(model_dir, 'scheduler.pt')
+  loss_path = os.path.join(model_dir, 'loss.pt')
+  best_loss_path = os.path.join(model_dir, 'best_loss.pt')
+  torch.save(model.state_dict(), model_path)
+  torch.save(optimizer.state_dict(), optimizer_path)
+  torch.save(scheduler.state_dict(), scheduler_path)
+  torch.save(loss, loss_path)
+  torch.save(best_loss, best_loss_path)
+  print('Saved model to: {}'.format(model_path))
+# %%
