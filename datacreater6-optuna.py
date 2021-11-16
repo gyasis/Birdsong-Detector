@@ -162,8 +162,7 @@ def mp3path(x):
 df['mp3'] = df['Wav'].apply(lambda x: mp3path(x))
 df['Species'] = l_e.inverse_transform(df['Class'])
 df.head()
-
-# %%
+T
 experiment = Experiment(api_key="xleFjfKO3kcwc56tglgC1d3zU",
                         project_name="Bird_calls",log_code=True)
 # %%
