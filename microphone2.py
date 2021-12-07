@@ -48,6 +48,8 @@ def start_recording():
     ic.ic(df)
     q.put(df)
     frames.append(data)
+    
+    save_chunk(df)
     stream.stop_stream()
     stream.close()
         # break
