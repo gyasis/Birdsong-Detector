@@ -151,3 +151,21 @@ def predict_chunk(sample):
         
 
 
+# %%%
+with torch.no_grad():
+
+# Create the model and put it on the GPU if available
+myModel = AudioClassifier()
+myModel = load_state_dict(torch.load(PATH))
+myModel.eval()
+myModel = myModel.to(device)
+
+
+x = preprocess_audio(sample)
+prediction = myModel(x)
+predicted_class = torch.argmax(prediction)
+
+#predictions should populate a list which then checks the frequency--a poor mans voting classifier
+print(predicted_class)
+q.put(predicted_class)
+return predicted_class
